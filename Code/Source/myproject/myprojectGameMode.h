@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
@@ -28,4 +28,16 @@ private:
     void ChangeMap();
     void AssignRolesOnLevel();
     void SpawnBoutonsOnLevel();
+    void UpdateCountdown();
+
+    FTimerHandle CountdownTimerHandle;
+    int32 CountdownTime;
+
+    // 🔹 Ajout : gestion du temps synchronisé
+    void SyncServerTime(APlayerController* NewPlayer);
+    float GetServerTime() const;
+
+    float ServerStartTime; // temps exact du début du compte à rebours
+
+
 };

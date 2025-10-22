@@ -1,4 +1,4 @@
-#pragma once 
+Ôªø#pragma once 
 
 #include "CoreMinimal.h" 
 #include "GameFramework/GameStateBase.h" 
@@ -13,15 +13,15 @@ class MYPROJECT_API AMyGameStateBase : public AGameStateBase
 public:
 	AMyGameStateBase();
 
-	// Nombre actuel de t‚ches
+	// Nombre actuel de t√¢ches
 	UPROPERTY(ReplicatedUsing = OnRep_Nbtache, BlueprintReadOnly)
 	int32 Nbtache;
 
-	// Nombre maximum de t‚ches (fixÈ au spawn des boutons)
+	// Nombre maximum de t√¢ches (fix√© au spawn des boutons)
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	int32 MaxTaches;
 
-	// Modifie Nbtache cÙtÈ serveur 
+	// Modifie Nbtache c√¥t√© serveur 
 	UFUNCTION(Server, Reliable)
 	void ServerModifyNbtache(AMyPlayerState* PlayerState);
 

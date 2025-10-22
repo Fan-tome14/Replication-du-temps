@@ -1,4 +1,4 @@
-#include "myprojectGameMode.h"
+﻿#include "myprojectGameMode.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/GameStateBase.h"
 #include "TimerManager.h"
@@ -8,6 +8,7 @@
 AmyprojectGameMode::AmyprojectGameMode()
 {
     bHasMapChanged = false;
+    CountdownTime = 30; // Compte à rebours de 30 secondes
 }
 
 void AmyprojectGameMode::PostLogin(APlayerController* NewPlayer)
@@ -18,37 +19,82 @@ void AmyprojectGameMode::PostLogin(APlayerController* NewPlayer)
     if (!World) return;
 
     FString CurrentMapName = World->GetMapName();
-    CurrentMapName.RemoveFromStart(World->StreamingLevelsPrefix); 
+    CurrentMapName.RemoveFromStart(World->StreamingLevelsPrefix);
 
-    
     if (CurrentMapName.Equals("Lobby"))
     {
         AGameStateBase* GS = GetGameState<AGameStateBase>();
         if (!GS) return;
 
         int32 PlayerCount = GS->PlayerArray.Num();
-        UE_LOG(LogTemp, Warning, TEXT("Nombre de joueurs connect�s : %d"), PlayerCount);
+        UE_LOG(LogTemp, Warning, TEXT("Nombre de joueurs connectés : %d"), PlayerCount);
 
-        if (!bHasMapChanged && PlayerCount >= 4)
+        if (!bHasMapChanged && PlayerCount >= 2)
         {
             bHasMapChanged = true;
-            UE_LOG(LogTemp, Warning, TEXT("4 joueurs connect�s ! La map changera dans 3 secondes"));
 
-            FTimerHandle TimerHandle;
-            GetWorldTimerManager().SetTimer(TimerHandle, this, &AmyprojectGameMode::ChangeMap, 3.0f, false);
+            UE_LOG(LogTemp, Warning, TEXT("2 joueurs connectés ! Synchronisation du temps et démarrage du compte à rebours..."));
+
+            // 🔹 Enregistre le temps exact de début serveur
+            ServerStartTime = GetWorld()->GetTimeSeconds();
+            CountdownTime = 30;
+
+            // 🔹 Synchronise chaque joueur avec le serveur
+            for (APlayerState* PS : GS->PlayerArray)
+            {
+                if (APlayerController* PC = Cast<APlayerController>(PS->GetOwner()))
+                {
+                    SyncServerTime(PC);
+                }
+            }
+
+            // 🔹 Démarre le timer sur le serveur
+            GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &AmyprojectGameMode::UpdateCountdown, 1.0f, true);
         }
+
     }
-    
     else if (CurrentMapName.Equals("Level"))
     {
         if (!HasAuthority()) return;
 
-        
         AssignRolesOnLevel();
-
-
     }
 }
+
+void AmyprojectGameMode::SyncServerTime(APlayerController* NewPlayer)
+{
+    if (!NewPlayer) return;
+
+    // Récupère le temps actuel du serveur (secondes depuis le lancement du monde)
+    const float CurrentServerTime = GetWorld()->GetTimeSeconds();
+
+    // Envoie ce temps au client via RPC
+    NewPlayer->ClientMessage(FString::Printf(TEXT("ServerTimeSync: %f"), CurrentServerTime));
+}
+
+float AmyprojectGameMode::GetServerTime() const
+{
+    UWorld* World = GetWorld();
+    return World ? World->GetTimeSeconds() : 0.f;
+}
+
+
+void AmyprojectGameMode::UpdateCountdown()
+{
+    // 🔹 Calcule le temps écoulé côté serveur
+    float Elapsed = GetWorld()->GetTimeSeconds() - ServerStartTime;
+    CountdownTime = 30 - FMath::FloorToInt(Elapsed);
+
+    // 🔹 Réplication du temps logique (affichage commun)
+    UE_LOG(LogTemp, Warning, TEXT("Temps restant (synchro serveur) : %d secondes"), CountdownTime);
+
+    if (CountdownTime <= 0)
+    {
+        GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
+        ChangeMap();
+    }
+}
+
 
 void AmyprojectGameMode::ChangeMap()
 {
@@ -59,13 +105,11 @@ void AmyprojectGameMode::ChangeMap()
         UE_LOG(LogTemp, Warning, TEXT("ServerTravel vers %s"), *MapPath);
 
         World->ServerTravel(MapPath + "?listen");
-
-        
     }
 
     SpawnBoutonsOnLevel();
-
 }
+
 
 void AmyprojectGameMode::AssignRolesOnLevel()
 {
@@ -104,7 +148,7 @@ void AmyprojectGameMode::AssignRolesOnLevel()
     for (AMyPlayerState* PS : Players)
     {
         const TCHAR* RoleText = (PS->GetPlayerRole() == EPlayerRole::Gentil) ? TEXT("Gentil") :
-            (PS->GetPlayerRole() == EPlayerRole::Mechant) ? TEXT("M�chant") : TEXT("Mort");
+            (PS->GetPlayerRole() == EPlayerRole::Mechant) ? TEXT("Méchant") : TEXT("Mort");
         UE_LOG(LogTemp, Warning, TEXT("Joueur %s est %s"), *PS->GetPlayerName(), RoleText);
     }
 
@@ -122,7 +166,7 @@ void AmyprojectGameMode::SpawnBoutonsOnLevel()
     CurrentMapName.RemoveFromStart(World->StreamingLevelsPrefix);
     if (!CurrentMapName.Equals("Level"))
     {
-        UE_LOG(LogTemp, Warning, TEXT("SpawnBoutons annul� : pas sur Level"));
+        UE_LOG(LogTemp, Warning, TEXT("SpawnBoutons annulé : pas sur Level"));
         return;
     }
 
