@@ -4,11 +4,121 @@
 #include "TimerManager.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "MyPlayerState.h"
+#include "Bouton.h"
+#include "MyGameStateBase.h"
+
 
 AmyprojectGameMode::AmyprojectGameMode()
 {
+    bIsPaused = false;
     bHasMapChanged = false;
     CountdownTime = 30; // Compte à rebours de 30 secondes
+    LevelDuration = 120; // Durée du niveau 2 minutes
+    LevelTimeRemaining = LevelDuration;
+    PauseWidgetInstance = nullptr;
+}
+
+void AmyprojectGameMode::TogglePauseMenu()
+{
+    bIsPaused = !bIsPaused;
+
+    // Détecter la map actuelle
+    UWorld* World = GetWorld();
+    FString CurrentMapName = World ? World->GetMapName() : "";
+    if (World) CurrentMapName.RemoveFromStart(World->StreamingLevelsPrefix);
+
+    if (bIsPaused)
+    {
+        // Pause du timer du niveau ou du lobby
+        if (CurrentMapName.Equals("Lobby"))
+        {
+            GetWorldTimerManager().PauseTimer(CountdownTimerHandle);
+            UE_LOG(LogTemp, Warning, TEXT("⏸️ Timer du Lobby mis en pause"));
+        }
+        else if (CurrentMapName.Equals("Level"))
+        {
+            PauseLevelTimer();
+        }
+
+        // Désactiver l'input des pawns
+        for (auto It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+        {
+            if (APlayerController* PC = It->Get())
+                if (APawn* P = PC->GetPawn()) P->DisableInput(PC);
+        }
+    }
+    else
+    {
+        // Reprise du timer du niveau ou du lobby
+        if (CurrentMapName.Equals("Lobby"))
+        {
+            GetWorldTimerManager().UnPauseTimer(CountdownTimerHandle);
+            UE_LOG(LogTemp, Warning, TEXT("▶️ Timer du Lobby relancé"));
+        }
+        else if (CurrentMapName.Equals("Level"))
+        {
+            ResumeLevelTimer();
+        }
+
+        // Réactiver l'input des pawns
+        for (auto It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+        {
+            if (APlayerController* PC = It->Get())
+                if (APawn* P = PC->GetPawn()) P->EnableInput(PC);
+        }
+    }
+
+    MulticastTogglePause(bIsPaused);
+}
+
+void AmyprojectGameMode::MulticastTogglePause_Implementation(bool bPaused)
+{
+    for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+    {
+        APlayerController* PC = It->Get();
+        if (!PC) continue;
+
+        if (bPaused)
+        {
+            PC->SetShowMouseCursor(true);
+            PC->SetInputMode(FInputModeUIOnly());
+
+            if (!PauseWidgetInstance)
+            {
+                if (PauseMenuWidgetClass) // Utilise la classe que tu as exposée
+                {
+                    PauseWidgetInstance = CreateWidget<UUserWidget>(PC, PauseMenuWidgetClass);
+                    if (PauseWidgetInstance)
+                        PauseWidgetInstance->AddToViewport();
+                }
+            }
+        }
+        else
+        {
+            PC->SetShowMouseCursor(false);
+            PC->SetInputMode(FInputModeGameOnly());
+
+            if (PauseWidgetInstance)
+            {
+                PauseWidgetInstance->RemoveFromParent();
+                PauseWidgetInstance = nullptr;
+            }
+        }
+    }
+}
+
+
+void AmyprojectGameMode::PauseLevelTimer()
+{
+    GetWorldTimerManager().PauseTimer(LevelDurationTimerHandle);
+    UE_LOG(LogTemp, Warning, TEXT("⏸️ Timer de niveau mis en pause"));
+}
+
+void AmyprojectGameMode::ResumeLevelTimer()
+{
+    GetWorldTimerManager().UnPauseTimer(LevelDurationTimerHandle);
+    UE_LOG(LogTemp, Warning, TEXT("▶️ Timer de niveau relancé"));
 }
 
 void AmyprojectGameMode::PostLogin(APlayerController* NewPlayer)
@@ -35,23 +145,17 @@ void AmyprojectGameMode::PostLogin(APlayerController* NewPlayer)
 
             UE_LOG(LogTemp, Warning, TEXT("2 joueurs connectés ! Synchronisation du temps et démarrage du compte à rebours..."));
 
-            // 🔹 Enregistre le temps exact de début serveur
             ServerStartTime = GetWorld()->GetTimeSeconds();
             CountdownTime = 30;
 
-            // 🔹 Synchronise chaque joueur avec le serveur
             for (APlayerState* PS : GS->PlayerArray)
             {
                 if (APlayerController* PC = Cast<APlayerController>(PS->GetOwner()))
-                {
                     SyncServerTime(PC);
-                }
             }
 
-            // 🔹 Démarre le timer sur le serveur
             GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &AmyprojectGameMode::UpdateCountdown, 1.0f, true);
         }
-
     }
     else if (CurrentMapName.Equals("Level"))
     {
@@ -59,22 +163,16 @@ void AmyprojectGameMode::PostLogin(APlayerController* NewPlayer)
 
         AssignRolesOnLevel();
 
-        // 🔹 Démarre le timer de 2 minutes ici (côté serveur)
-        LevelDuration = 120;
+        // Démarre le timer de 2 minutes côté serveur
         LevelTimeRemaining = LevelDuration;
         GetWorldTimerManager().SetTimer(LevelDurationTimerHandle, this, &AmyprojectGameMode::UpdateLevelTimer, 1.0f, true);
     }
-
 }
 
 void AmyprojectGameMode::SyncServerTime(APlayerController* NewPlayer)
 {
     if (!NewPlayer) return;
-
-    // Récupère le temps actuel du serveur (secondes depuis le lancement du monde)
     const float CurrentServerTime = GetWorld()->GetTimeSeconds();
-
-    // Envoie ce temps au client via RPC
     NewPlayer->ClientMessage(FString::Printf(TEXT("ServerTimeSync: %f"), CurrentServerTime));
 }
 
@@ -89,12 +187,9 @@ void AmyprojectGameMode::UpdateCountdown()
     float Elapsed = GetWorld()->GetTimeSeconds() - ServerStartTime;
     CountdownTime = 30 - FMath::FloorToInt(Elapsed);
 
-    // 🔹 Met à jour la valeur du GameState (répliquée automatiquement aux clients)
     AMyGameStateBase* MyGS = GetGameState<AMyGameStateBase>();
     if (MyGS)
-    {
         MyGS->CountdownTime = CountdownTime;
-    }
 
     UE_LOG(LogTemp, Warning, TEXT("Temps restant (synchro serveur) : %d secondes"), CountdownTime);
 
@@ -107,24 +202,25 @@ void AmyprojectGameMode::UpdateCountdown()
 
 void AmyprojectGameMode::ChangeMap()
 {
+    // Arrêter le timer du lobby
+    GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
+    UE_LOG(LogTemp, Warning, TEXT("⏹️ Timer du lobby arrêté avant changement de map"));
+
     UWorld* World = GetWorld();
     if (World && World->GetNetMode() == NM_ListenServer)
     {
         FString MapPath = "/Game/Level";
         UE_LOG(LogTemp, Warning, TEXT("ServerTravel vers %s"), *MapPath);
-
         World->ServerTravel(MapPath + "?listen");
     }
 
     SpawnBoutonsOnLevel();
 
-    // 🔹 Démarre le timer du niveau (2 minutes = 120 secondes)
-    LevelDuration = 120;
+    // Démarrage du timer de niveau
     LevelTimeRemaining = LevelDuration;
-
-    // Timer répétitif chaque seconde pour log
     GetWorldTimerManager().SetTimer(LevelDurationTimerHandle, this, &AmyprojectGameMode::UpdateLevelTimer, 1.0f, true);
 }
+
 
 void AmyprojectGameMode::AssignRolesOnLevel()
 {
@@ -132,42 +228,33 @@ void AmyprojectGameMode::AssignRolesOnLevel()
     if (!GS) return;
 
     TArray<AMyPlayerState*> Players;
-
     for (APlayerState* PS : GS->PlayerArray)
     {
         AMyPlayerState* MyPS = Cast<AMyPlayerState>(PS);
-        if (MyPS)
-            Players.Add(MyPS);
+        if (MyPS) Players.Add(MyPS);
     }
-
     if (Players.Num() == 0) return;
 
-    
     for (int32 i = 0; i < Players.Num(); i++)
     {
         int32 SwapIndex = FMath::RandRange(0, Players.Num() - 1);
         Players.Swap(i, SwapIndex);
     }
 
-    
     Players[0]->SetPlayerRole(EPlayerRole::Gentil);
 
-    
     for (int32 i = 1; i < Players.Num(); i++)
     {
         EPlayerRole NewRole = (FMath::RandBool()) ? EPlayerRole::Mechant : EPlayerRole::Mort;
         Players[i]->SetPlayerRole(NewRole);
     }
 
-    
     for (AMyPlayerState* PS : Players)
     {
         const TCHAR* RoleText = (PS->GetPlayerRole() == EPlayerRole::Gentil) ? TEXT("Gentil") :
             (PS->GetPlayerRole() == EPlayerRole::Mechant) ? TEXT("Méchant") : TEXT("Mort");
         UE_LOG(LogTemp, Warning, TEXT("Joueur %s est %s"), *PS->GetPlayerName(), RoleText);
     }
-
-    
 }
 
 void AmyprojectGameMode::SpawnBoutonsOnLevel()
@@ -187,22 +274,13 @@ void AmyprojectGameMode::SpawnBoutonsOnLevel()
 
     for (int32 i = 0; i < 5; i++)
     {
-        FVector SpawnLocation;
-        SpawnLocation.X = FMath::RandRange(-1000.f, 1000.f);
-        SpawnLocation.Z = FMath::RandRange(-1000.f, 1000.f);
-        SpawnLocation.Y = 0.f; 
-
-        FRotator SpawnRotation = FRotator::ZeroRotator;
-
-        ABouton* NewBouton = World->SpawnActor<ABouton>(BoutonClass, SpawnLocation, SpawnRotation);
-        if (NewBouton)
+        FVector SpawnLocation(FMath::RandRange(-1000.f, 1000.f), 0.f, FMath::RandRange(-1000.f, 1000.f));
+        ABouton* NewBouton = World->SpawnActor<ABouton>(BoutonClass, SpawnLocation, FRotator::ZeroRotator);
+        if (NewBouton && NewBouton->MeshComp)
         {
-            
             UMaterialInterface* Mat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/bouton"));
-            if (Mat && NewBouton->MeshComp)
-            {
+            if (Mat)
                 NewBouton->MeshComp->SetMaterial(0, Mat);
-            }
         }
     }
 }
@@ -221,15 +299,68 @@ void AmyprojectGameMode::EndLevel()
 
 void AmyprojectGameMode::UpdateLevelTimer()
 {
-    LevelTimeRemaining--;
-
-    UE_LOG(LogTemp, Warning, TEXT("Temps restant dans le niveau : %d secondes"), LevelTimeRemaining);
-
-    if (LevelTimeRemaining <= 0)
+    if (!bIsPaused)
     {
-        // Stop le timer répétitif
-        GetWorldTimerManager().ClearTimer(LevelDurationTimerHandle);
-        EndLevel();
+        LevelTimeRemaining--;
+        UE_LOG(LogTemp, Warning, TEXT("Temps restant dans le niveau : %d secondes"), LevelTimeRemaining);
+
+        if (LevelTimeRemaining <= 0)
+        {
+            GetWorldTimerManager().ClearTimer(LevelDurationTimerHandle);
+            EndLevel();
+        }
     }
 }
 
+void AmyprojectGameMode::ResumeFromPause()
+{
+    if (!bIsPaused) return;
+
+    bIsPaused = false;
+
+    // Détecter la map actuelle
+    UWorld* World = GetWorld();
+    FString CurrentMapName = World ? World->GetMapName() : "";
+    if (World) CurrentMapName.RemoveFromStart(World->StreamingLevelsPrefix);
+
+    // Relance le timer correspondant
+    if (CurrentMapName.Equals("Lobby"))
+    {
+        GetWorldTimerManager().UnPauseTimer(CountdownTimerHandle);
+        UE_LOG(LogTemp, Warning, TEXT("▶️ Timer du Lobby relancé via bouton Reprendre"));
+    }
+    else if (CurrentMapName.Equals("Level"))
+    {
+        ResumeLevelTimer();
+    }
+
+    // Réactiver l'input de tous les pawns
+    for (auto It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+    {
+        if (APlayerController* PC = It->Get())
+            if (APawn* P = PC->GetPawn()) P->EnableInput(PC);
+    }
+
+    // Retirer le widget
+    if (PauseWidgetInstance)
+    {
+        PauseWidgetInstance->RemoveFromParent();
+        PauseWidgetInstance = nullptr;
+    }
+
+    // Multicast pour synchroniser sur tous les clients
+    MulticastTogglePause(bIsPaused);
+}
+
+void AmyprojectGameMode::ReturnAllPlayersToLobby()
+{
+    UWorld* World = GetWorld();
+    if (!World || World->GetNetMode() != NM_ListenServer) return;
+
+    FString LobbyMapPath = "/Game/Lobby";
+
+    UE_LOG(LogTemp, Warning, TEXT("🔹 Tous les joueurs retournent au Lobby"));
+
+    // ServerTravel téléporte tous les clients vers le Lobby
+    World->ServerTravel(LobbyMapPath + "?listen");
+}
