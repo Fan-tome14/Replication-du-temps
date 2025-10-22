@@ -1,18 +1,19 @@
-# Travelling et Replication
+# Replication du temps
 
-Ce projet a été réalisé en groupe dans le cadre du **Travail Pratique 1 (TP1)** du cours **Programmation réseau multi-joueurs en ligne**, offert à l’**Université du Québec à Chicoutimi (UQAC)**.  
+Ce projet a été réalisé en groupe dans le cadre du **Travail Pratique 2 (TP2)** du cours **Programmation réseau multi-joueurs en ligne**, offert à l’**Université du Québec à Chicoutimi (UQAC)**.  
 
 ---
 
-- **Titre du projet :** Travelling et Replication
-- **Date de réalisation :** 28 septembre 2025  
+- **Titre du projet :** Replication du temps
+- **Date de réalisation :** 23 octobre 2025  
 - **Type de projet :** Travail individuel  
 - **Moteur de développement :** Unreal Engine
 
 ---
 
 ## Objectif du projet  
-Le jeu gère et réplique l’état des joueurs (méchant, gentil ou mort) afin que tous puissent voir l’état de chacun. Il inclut un nombre de tâches visibles et synchronise pour tous. Enfin, le monde contient N boutons interactifs : lorsqu’un méchant active un bouton, le nombre de tâches restantes augmente, tandis que lorsqu’un gentil l’active, ce nombre diminue.
+C’est une mise en œuvre de la **réplication du temps** dans un environnement multijoueur sous Unreal Engine, inspirée d’un algorithme de synchronisation proche du **NTP**. Le projet met en place un **compte à rebours synchronisé entre les joueurs**, déclenchant automatiquement le passage du **lobby au niveau de jeu**, puis le retour après une durée définie, le tout avec une **gestion du temps cohérente en réseau** et une **échappatoire via un menu pause**.
+
 
 ---
 
