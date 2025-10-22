@@ -81,11 +81,16 @@ float AmyprojectGameMode::GetServerTime() const
 
 void AmyprojectGameMode::UpdateCountdown()
 {
-    // 🔹 Calcule le temps écoulé côté serveur
     float Elapsed = GetWorld()->GetTimeSeconds() - ServerStartTime;
     CountdownTime = 30 - FMath::FloorToInt(Elapsed);
 
-    // 🔹 Réplication du temps logique (affichage commun)
+    // 🔹 Met à jour la valeur du GameState (répliquée automatiquement aux clients)
+    AMyGameStateBase* MyGS = GetGameState<AMyGameStateBase>();
+    if (MyGS)
+    {
+        MyGS->CountdownTime = CountdownTime;
+    }
+
     UE_LOG(LogTemp, Warning, TEXT("Temps restant (synchro serveur) : %d secondes"), CountdownTime);
 
     if (CountdownTime <= 0)
@@ -94,6 +99,7 @@ void AmyprojectGameMode::UpdateCountdown()
         ChangeMap();
     }
 }
+
 
 
 void AmyprojectGameMode::ChangeMap()

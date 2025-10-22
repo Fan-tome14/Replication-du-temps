@@ -67,9 +67,23 @@ void AMyGameStateBase::OnRep_Nbtache()
 	UE_LOG(LogTemp, Warning, TEXT("Nbtache répliqué = %d"), Nbtache);
 }
 
+void AMyGameStateBase::OnRep_CountdownTime()
+{
+	// Log pour vérifier la réplication côté client
+	UE_LOG(LogTemp, Warning, TEXT("CountdownTime répliqué = %d"), CountdownTime);
+}
+
+
 void AMyGameStateBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AMyGameStateBase, CountdownTime);
 	DOREPLIFETIME(AMyGameStateBase, Nbtache);
 	DOREPLIFETIME(AMyGameStateBase, MaxTaches);
 }
+
+
+
+
+

@@ -30,6 +30,15 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	
+	UPROPERTY(ReplicatedUsing = OnRep_CountdownTime, BlueprintReadOnly, Category = "Countdown")
+	int32 CountdownTime;
+
+	
+	UFUNCTION()
+	void OnRep_CountdownTime();
+
+
 protected:
 	virtual void BeginPlay() override;
 };
