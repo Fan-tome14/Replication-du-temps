@@ -58,7 +58,13 @@ void AmyprojectGameMode::PostLogin(APlayerController* NewPlayer)
         if (!HasAuthority()) return;
 
         AssignRolesOnLevel();
+
+        // 🔹 Démarre le timer de 2 minutes ici (côté serveur)
+        LevelDuration = 120;
+        LevelTimeRemaining = LevelDuration;
+        GetWorldTimerManager().SetTimer(LevelDurationTimerHandle, this, &AmyprojectGameMode::UpdateLevelTimer, 1.0f, true);
     }
+
 }
 
 void AmyprojectGameMode::SyncServerTime(APlayerController* NewPlayer)
@@ -77,7 +83,6 @@ float AmyprojectGameMode::GetServerTime() const
     UWorld* World = GetWorld();
     return World ? World->GetTimeSeconds() : 0.f;
 }
-
 
 void AmyprojectGameMode::UpdateCountdown()
 {
@@ -100,8 +105,6 @@ void AmyprojectGameMode::UpdateCountdown()
     }
 }
 
-
-
 void AmyprojectGameMode::ChangeMap()
 {
     UWorld* World = GetWorld();
@@ -114,8 +117,14 @@ void AmyprojectGameMode::ChangeMap()
     }
 
     SpawnBoutonsOnLevel();
-}
 
+    // 🔹 Démarre le timer du niveau (2 minutes = 120 secondes)
+    LevelDuration = 120;
+    LevelTimeRemaining = LevelDuration;
+
+    // Timer répétitif chaque seconde pour log
+    GetWorldTimerManager().SetTimer(LevelDurationTimerHandle, this, &AmyprojectGameMode::UpdateLevelTimer, 1.0f, true);
+}
 
 void AmyprojectGameMode::AssignRolesOnLevel()
 {
@@ -197,3 +206,30 @@ void AmyprojectGameMode::SpawnBoutonsOnLevel()
         }
     }
 }
+
+void AmyprojectGameMode::EndLevel()
+{
+    UE_LOG(LogTemp, Warning, TEXT("Fin du niveau ! Retour au Lobby"));
+
+    UWorld* World = GetWorld();
+    if (World && World->GetNetMode() == NM_ListenServer)
+    {
+        FString LobbyMapPath = "/Game/Lobby";
+        World->ServerTravel(LobbyMapPath + "?listen");
+    }
+}
+
+void AmyprojectGameMode::UpdateLevelTimer()
+{
+    LevelTimeRemaining--;
+
+    UE_LOG(LogTemp, Warning, TEXT("Temps restant dans le niveau : %d secondes"), LevelTimeRemaining);
+
+    if (LevelTimeRemaining <= 0)
+    {
+        // Stop le timer répétitif
+        GetWorldTimerManager().ClearTimer(LevelDurationTimerHandle);
+        EndLevel();
+    }
+}
+

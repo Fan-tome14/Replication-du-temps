@@ -40,4 +40,14 @@ private:
     float ServerStartTime; // temps exact du début du compte à rebours
 
 
+    FTimerHandle LevelDurationTimerHandle;
+    int32 LevelDuration; // Durée totale du niveau en secondes
+    int32 LevelTimeRemaining; // Temps restant pour affichage
+    void EndLevel();
+
+    // 🔹 Nouveau : fonction appelée chaque seconde pour log
+    void UpdateLevelTimer();
+
+
+
 };
