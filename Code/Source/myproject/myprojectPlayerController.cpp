@@ -95,7 +95,16 @@ void AmyprojectPlayerController::ServerInteract_Implementation()
     }
 }
 
-void AmyprojectPlayerController::HandlePauseMenu()
+void AmyprojectPlayerController::HandlePauseMenu_Implementation()
+{
+    if (IsLocalController())
+    {
+        ServerTogglePauseMenu();
+    }
+}
+
+
+void AmyprojectPlayerController::ServerTogglePauseMenu_Implementation()
 {
     AmyprojectGameMode* GM = Cast<AmyprojectGameMode>(GetWorld()->GetAuthGameMode());
     if (GM)
@@ -104,3 +113,51 @@ void AmyprojectPlayerController::HandlePauseMenu()
     }
 }
 
+
+
+void AmyprojectPlayerController::ClientShowPauseMenu_Implementation(bool bPaused)
+{
+    if (bPaused)
+    {
+        // Le joueur local ouvre le vrai menu
+        if (IsLocalController())
+        {
+            if (!PauseMenuWidget && PauseMenuWidgetClass)
+            {
+                PauseMenuWidget = CreateWidget<UUserWidget>(this, PauseMenuWidgetClass);
+                if (PauseMenuWidget)
+                    PauseMenuWidget->AddToViewport();
+            }
+        }
+        else
+        {
+            // Les autres joueurs voient un widget "pause d'un autre joueur"
+            if (!OtherPlayerPauseWidgetInstance && OtherPlayerPauseWidgetClass)
+            {
+                OtherPlayerPauseWidgetInstance = CreateWidget<UUserWidget>(this, OtherPlayerPauseWidgetClass);
+                if (OtherPlayerPauseWidgetInstance)
+                    OtherPlayerPauseWidgetInstance->AddToViewport();
+            }
+        }
+
+        SetShowMouseCursor(true);
+        SetInputMode(FInputModeUIOnly());
+    }
+    else
+    {
+        SetShowMouseCursor(false);
+        SetInputMode(FInputModeGameOnly());
+
+        if (PauseMenuWidget)
+        {
+            PauseMenuWidget->RemoveFromParent();
+            PauseMenuWidget = nullptr;
+        }
+
+        if (OtherPlayerPauseWidgetInstance)
+        {
+            OtherPlayerPauseWidgetInstance->RemoveFromParent();
+            OtherPlayerPauseWidgetInstance = nullptr;
+        }
+    }
+}
