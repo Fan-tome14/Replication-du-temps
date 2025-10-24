@@ -46,7 +46,7 @@ protected:
     UPROPERTY()
     TObjectPtr<UUserWidget> PauseMenuWidget;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    UPROPERTY(EditAnywhere, Category = "UI")
     TSubclassOf<UUserWidget> OtherPlayerPauseWidgetClass;
 
     UPROPERTY()
