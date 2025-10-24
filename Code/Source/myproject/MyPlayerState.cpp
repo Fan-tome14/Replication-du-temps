@@ -3,12 +3,12 @@
 
 AMyPlayerState::AMyPlayerState()
 {
-    PlayerRole = EPlayerRole::Gentil; // Rôle par défaut
+    PlayerRole = EPlayerRole::Gentil; 
 }
 
 void AMyPlayerState::SetPlayerRole(EPlayerRole NewRole)
 {
-    if (HasAuthority()) // Seul le serveur peut changer le rôle
+    if (HasAuthority()) 
     {
         PlayerRole = NewRole;
         OnRep_PlayerRole();

@@ -13,15 +13,15 @@ class MYPROJECT_API AMyGameStateBase : public AGameStateBase
 public:
 	AMyGameStateBase();
 
-	// Nombre actuel de tâches
+	
 	UPROPERTY(ReplicatedUsing = OnRep_Nbtache, BlueprintReadOnly)
 	int32 Nbtache;
 
-	// Nombre maximum de tâches (fixé au spawn des boutons)
+	
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	int32 MaxTaches;
 
-	// Modifie Nbtache côté serveur 
+	
 	UFUNCTION(Server, Reliable)
 	void ServerModifyNbtache(AMyPlayerState* PlayerState);
 

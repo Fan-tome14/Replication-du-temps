@@ -14,24 +14,24 @@ void AMyGameStateBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (HasAuthority()) // Seulement côté serveur
+	if (HasAuthority()) 
 	{
-		// Choisir un nombre aléatoire de boutons
-		MaxTaches = FMath::RandRange(3, 10); // exemple entre 3 et 10
+		
+		MaxTaches = FMath::RandRange(3, 10); 
 
-		// Spawn des boutons
+		
 		for (int32 i = 0; i < MaxTaches; i++)
 		{
 			FVector SpawnLocation;
 			SpawnLocation.X = FMath::RandRange(-1000.f, 1000.f);
 			SpawnLocation.Y = FMath::RandRange(-1000.f, 1000.f);
-			SpawnLocation.Z = 0.f; // posé au sol
+			SpawnLocation.Z = 0.f; 
 
 			FActorSpawnParameters Params;
 			GetWorld()->SpawnActor<ABouton>(ABouton::StaticClass(), SpawnLocation, FRotator::ZeroRotator, Params);
 		}
 
-		// Initialiser Nbtache au nombre de boutons
+		
 		Nbtache = MaxTaches;
 	}
 }
@@ -69,7 +69,7 @@ void AMyGameStateBase::OnRep_Nbtache()
 
 void AMyGameStateBase::OnRep_CountdownTime()
 {
-	// Log pour vérifier la réplication côté client
+	
 	UE_LOG(LogTemp, Warning, TEXT("CountdownTime répliqué = %d"), CountdownTime);
 }
 

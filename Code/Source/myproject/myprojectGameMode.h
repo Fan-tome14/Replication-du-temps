@@ -17,11 +17,11 @@ public:
 
     virtual void PostLogin(APlayerController* NewPlayer) override;
 
-    // 🔹 Active ou désactive le menu pause
+    
     UFUNCTION(BlueprintCallable)
     void TogglePauseMenu();
 
-    // 🔹 RPC multicast pour tous les clients
+    
     UFUNCTION(NetMulticast, Reliable)
     void MulticastTogglePause(bool bPaused);
 
@@ -42,19 +42,19 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Bouton")
     TSubclassOf<ABouton> BoutonClass;
 
-    // 🔹 Compte à rebours de 30 secondes avant le niveau
+    
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     int32 CountdownTime;
 
     FTimerHandle CountdownTimerHandle;
-    float ServerStartTime; // Temps exact du début du compte à rebours
+    float ServerStartTime; 
     void UpdateCountdown();
 
-    // 🔹 Synchronisation du temps côté client
+    
     void SyncServerTime(APlayerController* NewPlayer);
     float GetServerTime() const;
 
-    // 🔹 Widget pause
+    
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     TSubclassOf<UUserWidget> PauseMenuWidgetClass;
 
@@ -64,10 +64,10 @@ private:
     void SpawnBoutonsOnLevel();
     void UpdateLevelTimer();
 
-    // 🔹 Timer du niveau
+    
     FTimerHandle LevelDurationTimerHandle;
-    int32 LevelDuration;       // Durée totale du niveau en secondes
-    int32 LevelTimeRemaining;  // Temps restant pour affichage
+    int32 LevelDuration;       
+    int32 LevelTimeRemaining;  
     void EndLevel();
     void PauseLevelTimer();
     void ResumeLevelTimer();

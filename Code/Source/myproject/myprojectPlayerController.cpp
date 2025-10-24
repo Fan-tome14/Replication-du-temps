@@ -17,7 +17,7 @@ void AmyprojectPlayerController::BeginPlay()
 {
     Super::BeginPlay();
 
-    // Spawn touch controls only on local player controllers
+    
     if (SVirtualJoystick::ShouldDisplayTouchInterface() && IsLocalPlayerController())
     {
         if (MobileControlsWidgetClass)
@@ -39,7 +39,7 @@ void AmyprojectPlayerController::SetupInputComponent()
 {
     Super::SetupInputComponent();
 
-    // Mapping contexts pour Enhanced Input
+    
     if (IsLocalPlayerController())
     {
         if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
@@ -59,7 +59,7 @@ void AmyprojectPlayerController::SetupInputComponent()
         }
     }
 
-    // Bind touches P pour Interact et M pour Pause
+    
     InputComponent->BindKey(EKeys::P, IE_Pressed, this, &AmyprojectPlayerController::Interact);
     InputComponent->BindKey(EKeys::M, IE_Pressed, this, &AmyprojectPlayerController::HandlePauseMenu);
 }
@@ -74,7 +74,7 @@ void AmyprojectPlayerController::ServerInteract_Implementation()
     APawn* MyPawn = GetPawn();
     if (!MyPawn) return;
 
-    // Vérifier proximité avec un bouton
+    
     TArray<AActor*> Boutons;
     UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABouton::StaticClass(), Boutons);
 
@@ -88,7 +88,7 @@ void AmyprojectPlayerController::ServerInteract_Implementation()
             AMyPlayerState* PS = GetPlayerState<AMyPlayerState>();
             if (PS)
             {
-                Btn->Interact(PS); // Appel serveur
+                Btn->Interact(PS); 
                 break;
             }
         }

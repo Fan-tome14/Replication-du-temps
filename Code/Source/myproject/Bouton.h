@@ -22,18 +22,18 @@ protected:
 public:
     virtual void Tick(float DeltaTime) override;
 
-    // Zone de collision pour détecter les joueurs proches
+    
     UPROPERTY(VisibleAnywhere)
     USphereComponent* SphereComp;
 
-    // Mesh du bouton (cube)
+    
     UPROPERTY(VisibleAnywhere)
     UStaticMeshComponent* MeshComp;
 
-    // Distance maximale pour interaction
+   
     UPROPERTY(EditAnywhere)
     float InteractionDistance;
 
-    // Interaction réelle (appelée côté serveur)
+    
     void Interact(AMyPlayerState* PlayerState);
 };
