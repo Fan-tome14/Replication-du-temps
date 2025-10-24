@@ -136,7 +136,7 @@ void AmyprojectGameMode::PostLogin(APlayerController* NewPlayer)
         AGameStateBase* GS = GetGameState<AGameStateBase>();
         if (!GS) return;
 
-        int32 PlayerCount = GS->PlayerArray.Num();
+        PlayerCount = GS->PlayerArray.Num();
         UE_LOG(LogTemp, Warning, TEXT("Nombre de joueurs connectés : %d"), PlayerCount);
 
         if (!bHasMapChanged && PlayerCount >= 2)

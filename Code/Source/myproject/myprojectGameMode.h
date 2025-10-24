@@ -31,6 +31,11 @@ public:
     UFUNCTION(BlueprintCallable)
     void ReturnAllPlayersToLobby();
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    int32 PlayerCount;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    int32 LevelTimeRemaining;
 
 protected:
     UPROPERTY(Transient)
@@ -58,6 +63,8 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     TSubclassOf<UUserWidget> PauseMenuWidgetClass;
 
+    
+
 private:
     void ChangeMap();
     void AssignRolesOnLevel();
@@ -67,7 +74,7 @@ private:
     
     FTimerHandle LevelDurationTimerHandle;
     int32 LevelDuration;       
-    int32 LevelTimeRemaining;  
+    
     void EndLevel();
     void PauseLevelTimer();
     void ResumeLevelTimer();
