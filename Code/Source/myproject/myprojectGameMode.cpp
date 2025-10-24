@@ -302,6 +302,13 @@ void AmyprojectGameMode::UpdateLevelTimer()
     if (!bIsPaused)
     {
         LevelTimeRemaining--;
+
+        AMyGameStateBase* MyGS = GetGameState<AMyGameStateBase>();
+        if (MyGS)
+        {
+            MyGS->LevelTimeRemaining = LevelTimeRemaining; // ← Réplication automatique
+        }
+
         UE_LOG(LogTemp, Warning, TEXT("Temps restant dans le niveau : %d secondes"), LevelTimeRemaining);
 
         if (LevelTimeRemaining <= 0)
@@ -311,6 +318,7 @@ void AmyprojectGameMode::UpdateLevelTimer()
         }
     }
 }
+
 
 void AmyprojectGameMode::ResumeFromPause()
 {
